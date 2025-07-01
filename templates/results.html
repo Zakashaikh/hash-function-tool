@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash Results - Hash Function Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <h1>🔐 Hash Results</h1>
+        <p>Your {{ input_type.lower() }} has been successfully hashed</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-link">Home</a>
+        <a href="/history" class="nav-link">History</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Input Information -->
+        <section class="result-info">
+            <h2>📋 Input Information</h2>
+            <div class="input-display">
+                <strong>{{ input_type }}:</strong>
+                {% if input_type == 'Text' %}
+                    <div class="text-preview">{{ input_value }}</div>
+                {% else %}
+                    <div class="file-name">{{ input_value }}</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Hash Results -->
+        <section class="hash-results">
+            <h2>🔢 Generated Hashes</h2>
+            
+            {% for algorithm, hash_value in hashes.items() %}
+            <div class="hash-result-item">
+                <div class="algorithm-header">
+                    <h3>{{ algorithm }}</h3>
+                    <button class="copy-btn" onclick="copyToClipboard('{{ hash_value }}', this)">
+                        📋 Copy
+                    </button>
+                </div>
+                <div class="hash-value" id="hash-{{ algorithm }}">
+                    {{ hash_value }}
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+
+        <!-- Hash Comparison Tool -->
+        <section class="hash-compare">
+            <h2>🔍 Compare Hash</h2>
+            <p>Paste a hash below to compare with your results:</p>
+            <div class="compare-form">
+                <textarea 
+                    id="compare-input" 
+                    placeholder="Paste hash here for comparison..."
+                    rows="3"
+                ></textarea>
+                <button onclick="compareHash()" class="btn btn-secondary">Compare</button>
+            </div>
+            <div id="compare-result" class="compare-result"></div>
+        </section>
+
+        <!-- Actions -->
+        <section class="actions">
+            <a href="/" class="btn btn-primary">Hash Another</a>
+            <a href="/history" class="btn btn-secondary">View History</a>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Built with Python, Flask, and SQLite | Cybersecurity Portfolio Project</p>
+    </footer>
+
+    <script>
+        // Copy hash to clipboard function
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Change button text temporarily
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.backgroundColor = '#28a745';
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Could not copy to clipboard');
+            });
+        }
+
+        // Compare hash function
+        function compareHash() {
+            const inputHash = document.getElementById('compare-input').value.trim().toLowerCase();
+            if (!inputHash) {
+                alert('Please enter a hash to compare');
+                return;
+            }
+
+            const resultDiv = document.getElementById('compare-result');
+            let found = false;
+
+            // Get all our generated hashes
+            const hashes = {
+                {% for algorithm, hash_value in hashes.items() %}
+                '{{ algorithm }}': '{{ hash_value.lower() }}',
+                {% endfor %}
+            };
+
+            // Check if input matches any of our hashes
+            for (const [algorithm, hash] of Object.entries(hashes)) {
+                if (hash === inputHash) {
+                    resultDiv.innerHTML = `
+                        <div class="match-found">
+                            ✅ <strong>Match Found!</strong><br>
+                            The provided hash matches your <strong>${algorithm}</strong> hash.
+                        </div>
+                    `;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                resultDiv.innerHTML = `
+                    <div class="no-match">
+                        ❌ <strong>No Match</strong><br>
+                        The provided hash does not match any of your generated hashes.
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-select hash text when clicked
+        document.querySelectorAll('.hash-value').forEach(function(element) {
+            element.addEventListener('click', function() {
+                const range = document.createRange();
+                range.selectNodeContents(this);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            });
+        });
+
+        // Clear compare input when typing
+        document.getElementById('compare-input').addEventListener('input', function() {
+            document.getElementById('compare-result').innerHTML = '';
+        });
+    </script>
+</body>
+</html>

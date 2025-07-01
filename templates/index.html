@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash Function Tool - Cybersecurity Project</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <h1>🔐 Hash Function Tool</h1>
+        <p>Generate MD5, SHA-1, SHA-256, and SHA-512 hashes for text and files</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-link active">Home</a>
+        <a href="/history" class="nav-link">History</a>
+    </nav>
+
+    <!-- Flash Messages (for errors/success) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main>
+        <!-- Text Hashing Section -->
+        <section class="hash-section">
+            <h2>📝 Hash Text</h2>
+            <form action="/hash_text" method="POST" class="hash-form">
+                <div class="form-group">
+                    <label for="text_input">Enter text to hash:</label>
+                    <textarea 
+                        id="text_input" 
+                        name="text_input" 
+                        placeholder="Type or paste your text here..." 
+                        rows="4" 
+                        required
+                    ></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Generate Hash</button>
+            </form>
+        </section>
+
+        <!-- File Hashing Section -->
+        <section class="hash-section">
+            <h2>📁 Hash File</h2>
+            <form action="/hash_file" method="POST" enctype="multipart/form-data" class="hash-form">
+                <div class="form-group">
+                    <label for="file">Select file to hash:</label>
+                    <input 
+                        type="file" 
+                        id="file" 
+                        name="file" 
+                        accept="*/*" 
+                        required
+                    >
+                    <small class="help-text">Any file type is supported</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Generate Hash</button>
+            </form>
+        </section>
+
+        <!-- Information Section -->
+        <section class="info-section">
+            <h2>ℹ️ About Hash Functions</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>MD5</h3>
+                    <p>128-bit hash function. Fast but cryptographically broken. Used for checksums.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SHA-1</h3>
+                    <p>160-bit hash function. Deprecated for security applications due to vulnerabilities.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SHA-256</h3>
+                    <p>256-bit hash function. Currently secure and widely used in blockchain and security.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SHA-512</h3>
+                    <p>512-bit hash function. More secure than SHA-256, used for high-security applications.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Information -->
+        <section class="api-section">
+            <h2>🔌 API Usage</h2>
+            <p>You can also use our API programmatically:</p>
+            <div class="code-block">
+                <code>
+POST /api/hash<br>
+Content-Type: application/json<br><br>
+{<br>
+&nbsp;&nbsp;"text": "Hello World"<br>
+}
+                </code>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Built with Python, Flask, and SQLite | Cybersecurity Portfolio Project</p>
+    </footer>
+
+    <script>
+        // Simple JavaScript for file upload feedback
+        document.getElementById('file').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                const helpText = document.querySelector('.help-text');
+                helpText.textContent = `Selected: ${fileName}`;
+                helpText.style.color = '#28a745';
+            }
+        });
+
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

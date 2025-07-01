@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash History - Hash Function Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <h1>📜 Hash History</h1>
+        <p>View all your previous hash operations</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-link">Home</a>
+        <a href="/history" class="nav-link active">History</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        <section class="history-section">
+            <div class="history-header">
+                <h2>Recent Hash Operations</h2>
+                <div class="history-stats">
+                    <span class="stat">Total Records: {{ history|length }}</span>
+                </div>
+            </div>
+
+            {% if history %}
+                <!-- Filter Controls -->
+                <div class="filter-controls">
+                    <select id="algorithm-filter" onchange="filterHistory()">
+                        <option value="">All Algorithms</option>
+                        <option value="MD5">MD5</option>
+                        <option value="SHA-1">SHA-1</option>
+                        <option value="SHA-256">SHA-256</option>
+                        <option value="SHA-512">SHA-512</option>
+                    </select>
+                    
+                    <select id="type-filter" onchange="filterHistory()">
+                        <option value="">All Types</option>
+                        <option value="text">Text</option>
+                        <option value="file">File</option>
+                    </select>
+                    
+                    <input type="text" id="search-input" placeholder="Search input value..." onkeyup="filterHistory()">
+                </div>
+
+                <!-- History Table -->
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Input</th>
+                                <th>Algorithm</th>
+                                <th>Hash Result</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody">
+                            {% for record in history %}
+                            <tr class="history-row" 
+                                data-algorithm="{{ record.algorithm }}" 
+                                data-type="{{ record.input_type }}"
+                                data-input="{{ record.input_value|lower }}">
+                                <td class="timestamp">{{ record.timestamp }}</td>
+                                <td class="input-type">
+                                    <span class="type-badge {{ record.input_type }}">
+                                        {% if record.input_type == 'text' %}📝{% else %}📁{% endif %}
+                                        {{ record.input_type|title }}
+                                    </span>
+                                </td>
+                                <td class="input-value">
+                                    <div class="input-preview">{{ record.input_value }}</div>
+                                </td>
+                                <td class="algorithm">
+                                    <span class="algorithm-badge">{{ record.algorithm }}</span>
+                                </td>
+                                <td class="hash-result">
+                                    <div class="hash-display" onclick="selectText(this)">
+                                        {{ record.hash_result }}
+                                    </div>
+                                </td>
+                                <td class="actions">
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ record.hash_result }}', this)">
+                                        📋
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Info -->
+                <div class="pagination-info">
+                    <p>Showing {{ history|length }} most recent records</p>
+                </div>
+
+            {% else %}
+                <!-- Empty State -->
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>No Hash History Found</h3>
+                    <p>You haven't generated any hashes yet.</p>
+                    <a href="/" class="btn btn-primary">Generate Your First Hash</a>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Hash Statistics -->
+        {% if history %}
+        <section class="stats-section">
+            <h2>📊 Statistics</h2>
+            <div class="stats-grid" id="stats-container">
+                <!-- Statistics will be populated by JavaScript -->
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Built with Python, Flask, and SQLite | Cybersecurity Portfolio Project</p>
+    </footer>
+
+    <script>
+        // Copy hash to clipboard function
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(function() {
+                const originalText = button.textContent;
+                button.textContent = '✅';
+                button.style.backgroundColor = '#28a745';
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Could not copy to clipboard');
+            });
+        }
+
+        // Select text when clicked
+        function selectText(element) {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        // Filter history table
+        function filterHistory() {
+            const algorithmFilter = document.getElementById('algorithm-filter').value;
+            const typeFilter = document.getElementById('type-filter').value;
+            const searchInput = document.getElementById('search-input').value.toLowerCase();
+            
+            const rows = document.querySelectorAll('.history-row');
+            let visibleCount = 0;
+            
+            rows.forEach(function(row) {
+                const algorithm = row.getAttribute('data-algorithm');
+                const type = row.getAttribute('data-type');
+                const input = row.getAttribute('data-input');
+                
+                let show = true;
+                
+                // Filter by algorithm
+                if (algorithmFilter && algorithm !== algorithmFilter) {
+                    show = false;
+                }
+                
+                // Filter by type
+                if (typeFilter && type !== typeFilter) {
+                    show = false;
+                }
+                
+                // Filter by search input
+                if (searchInput && !input.includes(searchInput)) {
+                    show = false;
+                }
+                
+                if (show) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update the visible count
+            document.querySelector('.pagination-info p').textContent = 
+                `Showing ${visibleCount} of {{ history|length }} records`;
+        }
+
+        // Calculate and display statistics
+        function calculateStats() {
+            const rows = document.querySelectorAll('.history-row');
+            const stats = {
+                algorithms: {},
+                types: {},
+                total: rows.length
+            };
+            
+            rows.forEach(function(row) {
+                const algorithm = row.getAttribute('data-algorithm');
+                const type = row.getAttribute('data-type');
+                
+                stats.algorithms[algorithm] = (stats.algorithms[algorithm] || 0) + 1;
+                stats.types[type] = (stats.types[type] || 0) + 1;
+            });
+            
+            // Display statistics
+            const statsContainer = document.getElementById('stats-container');
+            if (statsContainer) {
+                let html = `
+                    <div class="stat-card">
+                        <h3>Total Operations</h3>
+                        <div class="stat-number">${stats.total}</div>
+                    </div>
+                `;
+                
+                // Algorithm breakdown
+                for (const [algorithm, count] of Object.entries(stats.algorithms)) {
+                    const percentage = ((count / stats.total) * 100).toFixed(1);
+                    html += `
+                        <div class="stat-card">
+                            <h3>${algorithm}</h3>
+                            <div class="stat-number">${count}</div>
+                            <div class="stat-percentage">${percentage}%</div>
+                        </div>
+                    `;
+                }
+                
+                // Type breakdown
+                for (const [type, count] of Object.entries(stats.types)) {
+                    const percentage = ((count / stats.total) * 100).toFixed(1);
+                    html += `
+                        <div class="stat-card">
+                            <h3>${type.charAt(0).toUpperCase() + type.slice(1)} Input</h3>
+                            <div class="stat-number">${count}</div>
+                            <div class="stat-percentage">${percentage}%</div>
+                        </div>
+                    `;
+                }
+                
+                statsContainer.innerHTML = html;
+            }
+        }
+
+        // Initialize statistics on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateStats();
+        });
+    </script>
+</body>
+</html>
