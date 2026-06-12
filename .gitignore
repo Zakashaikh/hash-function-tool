@@ -146,4 +146,4 @@ Thumbs.db
 
 # Project specific
 # Keep the database for demo purposes, but you might want to exclude it in production
-# hash_results.db
+hash_results.db
