@@ -1,6 +1,7 @@
 # app.py - Flask web app for generating and comparing cryptographic hashes.
 
 import hashlib
+import os
 
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
 
@@ -8,8 +9,15 @@ from database import init_db, save_hash_result, get_hash_history
 
 ALGORITHMS = ("MD5", "SHA-1", "SHA-256", "SHA-512")
 
+# 16 MB cap on uploads: request bodies are buffered in memory, so
+# unbounded uploads are a denial-of-service risk.
+MAX_UPLOAD_BYTES = 16 * 1024 * 1024
+
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-for-security'
+# Secret key comes from the environment in deployment; the random fallback
+# keeps flash messages working in local runs without shipping a hardcoded key.
+app.secret_key = os.environ.get("SECRET_KEY", os.urandom(32).hex())
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 
 init_db()
 
@@ -61,8 +69,9 @@ def hash_file():
 
     try:
         hashes = digest_all(file.read())
-    except Exception as e:
-        flash(f"Error processing file: {str(e)}", "error")
+    except OSError:
+        # Don't echo exception details back to the client.
+        flash("Could not read the uploaded file.", "error")
         return redirect(url_for("index"))
 
     for algorithm, hash_value in hashes.items():
@@ -85,17 +94,22 @@ def history():
 
 @app.route("/api/hash", methods=["POST"])
 def api_hash():
-    try:
-        data = request.json
-        text_input = data.get("text")
-        if not text_input:
-            return jsonify({"error": "No text provided"}), 400
+    data = request.get_json(silent=True)
+    text_input = data.get("text") if isinstance(data, dict) else None
+    if not text_input or not isinstance(text_input, str):
+        return jsonify({"error": "No text provided"}), 400
 
-        hashes = {alg.lower().replace("-", ""): h for alg, h in digest_all(text_input.encode()).items()}
-        return jsonify({"input": text_input, "hashes": hashes})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    hashes = {alg.lower().replace("-", ""): h for alg, h in digest_all(text_input.encode()).items()}
+    return jsonify({"input": text_input, "hashes": hashes})
+
+
+@app.errorhandler(413)
+def upload_too_large(_):
+    flash("File exceeds the 16 MB upload limit.", "error")
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # Debug mode and non-loopback binds are opt-in: the Werkzeug debugger
+    # allows arbitrary code execution and must never face a network.
+    app.run(host="127.0.0.1", port=5000, debug=False)
